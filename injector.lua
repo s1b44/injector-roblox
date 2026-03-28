@@ -1,115 +1,171 @@
-local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Player = game:GetService("Players").LocalPlayer
+local LogService = game:GetService("LogService")
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local LogScrolling = Instance.new("ScrollingFrame")
+local EditorScrolling = Instance.new("ScrollingFrame")
+local UIListLayout = Instance.new("UIListLayout")
+local Title = Instance.new("TextLabel")
+local ScriptEditor = Instance.new("TextBox")
+local ExecuteBtn = Instance.new("TextButton")
+local ClearBtn = Instance.new("TextButton")
+local CloseBtn = Instance.new("TextButton")
+local MinimizeBtn = Instance.new("TextButton") -- Кнопка -
+local OpenBtn = Instance.new("TextButton") -- Кнопка L
 
-local Losses = 0
-local CurrentScore = 0
+-- Настройка GUI
+ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
+ScreenGui.Name = "Loodik_Injector_V2"
+ScreenGui.ResetOnSpawn = false
 
--- Очистка старых версий
-local old = game:GetService("CoreGui"):FindFirstChild("BB_Final_Pro") or Player:WaitForChild("PlayerGui"):FindFirstChild("BB_Final_Pro")
-if old then old:Destroy() end
-
-local SG = Instance.new("ScreenGui", game:GetService("CoreGui"))
-SG.Name = "BB_Final_Pro"
-
--- Звук отскока (надежный ID)
-local HitSound = Instance.new("Sound", game:GetService("SoundService"))
-HitSound.SoundId = "rbxassetid://130706003"
-HitSound.Volume = 1
-
--- Функция перетаскивания меню
-local function MakeDraggable(f)
-    local d, s, sp
-    f.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true; s = i.Position; sp = f.Position end end)
-    UIS.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then local delta = i.Position - s; f.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y) end end)
-    f.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = false end end)
+local function round(obj, px)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, px or 8)
+    c.Parent = obj
 end
 
--- ГЛАВНОЕ МЕНЮ
-local Main = Instance.new("Frame", SG)
-Main.Size = UDim2.new(0, 250, 0, 180); Main.Position = UDim2.new(0.5, -125, 0.5, -90); Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Instance.new("UICorner", Main)
-MakeDraggable(Main)
+-- --- КНОПКА L (Плавающая) ---
+OpenBtn.Parent = ScreenGui
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+OpenBtn.Text = "L"
+OpenBtn.TextColor3 = Color3.new(1, 1, 1)
+OpenBtn.TextSize = 25
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.Visible = false
+OpenBtn.Active = true
+OpenBtn.Draggable = true -- Можно таскать кнопку L
+round(OpenBtn, 25)
 
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 40); Title.Text = "BB BALL HUB [Y]"; Title.TextColor3 = Color3.new(1,1,1); Title.BackgroundTransparency = 1
+-- Главное окно
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Position = UDim2.new(0.2, 0, 0.15, 0)
+MainFrame.Size = UDim2.new(0, 700, 0, 520)
+MainFrame.Active = true
+MainFrame.Draggable = true -- Можно таскать инжектор
+round(MainFrame)
 
-local LossLabel = Instance.new("TextLabel", Main)
-LossLabel.Size = UDim2.new(1, 0, 0, 30); LossLabel.Position = UDim2.new(0, 0, 0, 45); LossLabel.Text = "ПРОИГРЫШИ: 0"; LossLabel.TextColor3 = Color3.fromRGB(255, 60, 60); LossLabel.BackgroundTransparency = 1
+-- Заголовок
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, -80, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.Text = "   Mini injector by Loodik"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+round(Title)
 
-local MinBtn = Instance.new("TextButton", Main)
-MinBtn.Size = UDim2.new(0, 30, 0, 30); MinBtn.Position = UDim2.new(1, -35, 0, 5); MinBtn.Text = "-"; MinBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0); MinBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(1,0)
+-- Кнопка закрыть (X)
+CloseBtn.Parent = MainFrame
+CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+CloseBtn.Position = UDim2.new(1, -38, 0, 2)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+round(CloseBtn)
 
-local PlayBtn = Instance.new("TextButton", Main)
-PlayBtn.Size = UDim2.new(0, 150, 0, 45); PlayBtn.Position = UDim2.new(0.5, -75, 0.65, 0); PlayBtn.Text = "ИГРАТЬ"; PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0); PlayBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", PlayBtn)
+-- Кнопка сворачивания (-)
+MinimizeBtn.Parent = MainFrame
+MinimizeBtn.Size = UDim2.new(0, 35, 0, 35)
+MinimizeBtn.Position = UDim2.new(1, -76, 0, 2)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+MinimizeBtn.TextSize = 25
+round(MinimizeBtn)
 
--- КНОПКА Y
-local FlyY = Instance.new("TextButton", SG)
-FlyY.Size = UDim2.new(0, 45, 0, 45); FlyY.Position = UDim2.new(0, 10, 0.5, 0); FlyY.Text = "Y"; FlyY.Visible = false; FlyY.BackgroundColor3 = Color3.fromRGB(255, 160, 0); Instance.new("UICorner", FlyY).CornerRadius = UDim.new(1,0); MakeDraggable(FlyY)
+-- Логика кнопок
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    OpenBtn.Visible = true
+end)
 
-local function toggle() Main.Visible = not Main.Visible; FlyY.Visible = not Main.Visible end
-MinBtn.MouseButton1Click:Connect(toggle); FlyY.MouseButton1Click:Connect(toggle)
-UIS.InputBegan:Connect(function(k) if k.KeyCode == Enum.KeyCode.Y then toggle() end end)
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    OpenBtn.Visible = false
+end)
 
--- ИГРА
-PlayBtn.MouseButton1Click:Connect(function()
-    Main.Visible = false
-    CurrentScore = 0
-    
-    local Char = Player.Character
-    if Char and Char:FindFirstChild("HumanoidRootPart") then Char.HumanoidRootPart.Anchored = true end
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
-    local C = Instance.new("Frame", SG); C.Size = UDim2.new(1,0,1,0); C.BackgroundColor3 = Color3.new(0,0,0); C.ZIndex = 2000; C.Active = true
+-- Консоль
+LogScrolling.Parent = MainFrame
+LogScrolling.Position = UDim2.new(0, 10, 0, 50)
+LogScrolling.Size = UDim2.new(1, -20, 0, 200)
+LogScrolling.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+LogScrolling.ScrollBarThickness = 4
+round(LogScrolling, 5)
 
-    local UI_Score = Instance.new("TextLabel", C); UI_Score.Size = UDim2.new(1,0,0,100); UI_Score.Text = "ОЧКИ: 0 | ПРОИГРЫШИ: "..Losses; UI_Score.TextColor3 = Color3.new(1,1,1); UI_Score.BackgroundTransparency = 1; UI_Score.TextSize = 25; UI_Score.ZIndex = 2010
+UIListLayout.Parent = LogScrolling
+UIListLayout.Padding = UDim.new(0, 2)
 
-    local Exit = Instance.new("TextButton", C); Exit.Size = UDim2.new(0,100,0,40); Exit.Position = UDim2.new(0.5,-50,0.9,0); Exit.Text = "ВЫХОД"; Exit.ZIndex = 2010; 
-    Exit.MouseButton1Click:Connect(function() 
-        C:Destroy(); Main.Visible = true; 
-        if Char and Char:FindFirstChild("HumanoidRootPart") then Char.HumanoidRootPart.Anchored = false end 
-    end)
+local function log(msg, mType)
+    local color = Color3.new(0.8, 0.8, 0.8)
+    if mType == Enum.MessageType.MessageError then color = Color3.new(1, 0.3, 0.3) end
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, -10, 0, 18)
+    l.BackgroundTransparency = 1
+    l.Text = " [" .. os.date("%X") .. "] " .. tostring(msg)
+    l.TextColor3 = color
+    l.Font = Enum.Font.Code
+    l.TextSize = 13
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = LogScrolling
+    LogScrolling.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+end
 
-    local P = Instance.new("Frame", C); P.Size = UDim2.new(0,160,0,25); P.Position = UDim2.new(0.5,-80,0.85,0); P.BackgroundColor3 = Color3.new(1,1,1); P.ZIndex = 2010; Instance.new("UICorner", P)
-    local B = Instance.new("Frame", C); B.Size = UDim2.new(0,22,0,22); B.BackgroundColor3 = Color3.fromRGB(255, 255, 0); B.Position = UDim2.new(0.5,0,0.5,0); B.ZIndex = 2010; Instance.new("UICorner", B).CornerRadius = UDim.new(1,0)
+for _, d in pairs(LogService:GetLogHistory()) do log(d.message, d.messageType) end
+LogService.MessageOut:Connect(function(m, t) log(m, t) end)
 
-    local vel = Vector2.new(16, -16)
-    local r = RunService.RenderStepped:Connect(function()
-        if not C.Parent then return end
-        
-        -- Управление
-        if UIS:IsKeyDown(Enum.KeyCode.A) then 
-            P.Position = P.Position + UDim2.new(0, -22, 0, 0) 
-        elseif UIS:IsKeyDown(Enum.KeyCode.D) then 
-            P.Position = P.Position + UDim2.new(0, 22, 0, 0) 
-        else
-            P.Position = UDim2.new(0, UIS:GetMouseLocation().X - 80, 0.85, 0)
-        end
+-- Редактор
+EditorScrolling.Parent = MainFrame
+EditorScrolling.Position = UDim2.new(0, 10, 0, 260)
+EditorScrolling.Size = UDim2.new(1, -20, 0, 190)
+EditorScrolling.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+round(EditorScrolling, 5)
 
-        -- Границы ракетки
-        if P.AbsolutePosition.X < 0 then P.Position = UDim2.new(0,0,0.85,0) end
-        if P.AbsolutePosition.X > C.AbsoluteSize.X - 160 then P.Position = UDim2.new(0, C.AbsoluteSize.X - 160, 0.85, 0) end
+ScriptEditor.Parent = EditorScrolling
+ScriptEditor.Size = UDim2.new(1, 0, 1, 0)
+ScriptEditor.AutomaticSize = Enum.AutomaticSize.Y
+ScriptEditor.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+ScriptEditor.TextColor3 = Color3.fromRGB(150, 255, 150)
+ScriptEditor.Text = ""
+ScriptEditor.MultiLine = true
+ScriptEditor.ClearTextOnFocus = false
+ScriptEditor.Font = Enum.Font.Code
+ScriptEditor.TextXAlignment = Enum.TextXAlignment.Left
+ScriptEditor.TextYAlignment = Enum.TextYAlignment.Top
 
-        B.Position = B.Position + UDim2.new(0, vel.X, 0, vel.Y)
-        
-        -- Стенки
-        if B.AbsolutePosition.X < 0 or B.AbsolutePosition.X > C.AbsoluteSize.X-22 then vel = Vector2.new(-vel.X, vel.Y) end
-        if B.AbsolutePosition.Y < 0 then vel = Vector2.new(vel.X, -vel.Y) end
-        
-        -- Ракетка
-        if B.AbsolutePosition.Y >= P.AbsolutePosition.Y-22 and 
-           B.AbsolutePosition.X > P.AbsolutePosition.X - 10 and 
-           B.AbsolutePosition.X < P.AbsolutePosition.X + 170 then
-            vel = Vector2.new(vel.X, -math.abs(vel.Y))
-            CurrentScore = CurrentScore + 1
-            UI_Score.Text = "ОЧКИ: "..CurrentScore.." | ПРОИГРЫШИ: "..Losses
-            HitSound:Play()
-        end
-        
-        -- Проигрыш
-        if B.AbsolutePosition.Y > C.AbsoluteSize.Y then
-            Losses = Losses + 1; CurrentScore = 0
-            B.Position = UDim2.new(0.5, 0, 0.5, 0); vel = Vector2.new(16, -16)
-            LossLabel.Text = "ПРОИГРЫШИ: "..Losses; UI_Score.Text = "ОЧКИ: 0 | ПРОИГРЫШИ: "..Losses
-        end
-    end)
-    C.Destroying:Connect(function() r:Disconnect() end)
+ScriptEditor:GetPropertyChangedSignal("TextBounds"):Connect(function()
+    EditorScrolling.CanvasSize = UDim2.new(0, 0, 0, ScriptEditor.TextBounds.Y + 20)
+end)
+
+-- Execute / Clear
+ExecuteBtn.Parent = MainFrame
+ExecuteBtn.Position = UDim2.new(0, 10, 0, 460)
+ExecuteBtn.Size = UDim2.new(0, 335, 0, 50)
+ExecuteBtn.BackgroundColor3 = Color3.fromRGB(45, 100, 45)
+ExecuteBtn.Text = "EXECUTE"
+ExecuteBtn.TextColor3 = Color3.new(1, 1, 1)
+round(ExecuteBtn)
+
+ClearBtn.Parent = MainFrame
+ClearBtn.Position = UDim2.new(0, 355, 0, 460)
+ClearBtn.Size = UDim2.new(0, 335, 0, 50)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(100, 45, 45)
+ClearBtn.Text = "CLEAR ALL"
+ClearBtn.TextColor3 = Color3.new(1, 1, 1)
+round(ClearBtn)
+
+ExecuteBtn.MouseButton1Click:Connect(function()
+    local code = ScriptEditor.Text
+    if code ~= "" then
+        local success, err = pcall(function() loadstring(code)() end)
+        if not success then log("ERROR: " .. err, Enum.MessageType.MessageError) end
+    end
+end)
+
+ClearBtn.MouseButton1Click:Connect(function()
+    ScriptEditor.Text = ""
+    for _, v in pairs(LogScrolling:GetChildren()) do if v:IsA("TextLabel") then v:Destroy() end end
 end)
